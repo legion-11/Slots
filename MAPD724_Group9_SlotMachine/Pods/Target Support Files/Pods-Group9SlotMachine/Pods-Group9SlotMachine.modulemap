@@ -1,0 +1,6 @@
+framework module Pods_Group9SlotMachine {
+  umbrella header "Pods-Group9SlotMachine-umbrella.h"
+
+  export *
+  module * { export * }
+}

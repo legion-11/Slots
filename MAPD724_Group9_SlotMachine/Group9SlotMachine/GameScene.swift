@@ -25,6 +25,7 @@
 import SpriteKit
 import GameplayKit
 import UIKit
+import Firebase
 
 let screenSize = UIScreen.main.bounds
 var screenWidth: CGFloat?
@@ -37,6 +38,8 @@ var winlbl: SKLabelNode!
 var jckPotlbl: SKLabelNode!
 
 class GameScene: SKScene {
+    
+    lazy var functions = Functions.functions()
     
     var reel1: REEL1?
     var reel2: REEL2?
@@ -52,7 +55,7 @@ class GameScene: SKScene {
     var background: Background?
     var winnings = 0
     var playerMoney = 5000
-    var jackpot = 777777
+    var jackpot = 0
     var winNumber = 0
     var playerBet = 0
     var lossNumber = 0
@@ -72,6 +75,7 @@ class GameScene: SKScene {
     var bounds: CGRect = CGRect.zero
     
     override func didMove(to view: SKView) {
+        updateJackpot(0)
         
         screenWidth = frame.width
         screenHeight = frame.height
@@ -206,14 +210,15 @@ class GameScene: SKScene {
             component3.append(i)
         }
         //Show player stats in labels
-        showPlayerStats()
     }
     
     // Different Labels
     func showPlayerStats()
     {
         betlbl?.text = String(playerBet)
+        
         jckPotlbl?.text = "\(jackpot)"
+        
         credlbl?.text = "\(playerMoney)"
         winlbl?.text = "\(winNumber)"
     }
@@ -234,7 +239,6 @@ class GameScene: SKScene {
     func resetGame() {
         playerMoney = 5000
         winnings = 0
-        jackpot = 777777
         playerBet = 0
         winNumber = 0
     }
@@ -247,8 +251,8 @@ class GameScene: SKScene {
         let jackPotWinNumber = Int(arc4random_uniform(UInt32(51))) + 1
         
         if jackPotNumber == jackPotWinNumber {
+            updateJackpot(-jackpot)
             playerMoney += jackpot
-            jackpot = 777777
         }
     }
     
@@ -340,6 +344,8 @@ class GameScene: SKScene {
                 continue
             }
         }
+    
+        
         return winReelResults
     }
     
@@ -398,12 +404,13 @@ class GameScene: SKScene {
                 winnings = playerBet * 1;
             }
             winNumber += 1
-            showWinMessage()
+            updateJackpot(-winnings)
         }
         else
         {
             lossNumber += 1
             lossParse()
+            updateJackpot(playerBet)
         }
     }
     
@@ -474,7 +481,6 @@ class GameScene: SKScene {
                     reel3?.texture = texture3
                     
                     determineWinnings();
-                    showPlayerStats();
                 }
             }
         }
@@ -510,6 +516,24 @@ class GameScene: SKScene {
             }
         }
         
-
+    func updateJackpot(_ number: Int) {
+        functions.httpsCallable("changeJackpot").call(["number": number]) { (result, error) in
+            if let error = error as NSError? {
+              if error.domain == FunctionsErrorDomain {
+                  let code = FunctionsErrorCode(rawValue: error.code)
+                  let message = error.localizedDescription
+                  let details = error.userInfo[FunctionsErrorDetailsKey]
+                  print(code ?? "no code", message, details ?? "error occured")
+            }
+            // ...
+            }
+            if let value = (result?.data as? [String: Int])?["result"] {
+                print(value)
+                self.jackpot = value
+                self.showPlayerStats()
+            }
+        }
+    }
+    
     }
 
